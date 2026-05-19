@@ -20,7 +20,7 @@ services:
       - key: YOUTUBE_API_KEY
         sync: false
       - key: CORS_ORIGINS
-        value: '["https://your-app.vercel.app"]'
+        value: '["https://my-youtube-web.vercel.app"]'
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
