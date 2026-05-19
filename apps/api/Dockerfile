@@ -7,6 +7,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Copy dependency files first for cache
 COPY pyproject.toml .
+COPY uv.lock .
 COPY alembic.ini .
 
 # Install production dependencies
