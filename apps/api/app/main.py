@@ -10,7 +10,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.api.v1 import auth, feed, health
+from app.api.v1 import auth, feed, health, history, search
 from app.core.config import get_settings
 from app.core.database import create_engine, get_session_factory
 from app.core.redis import close_redis_pool, create_redis_pool
@@ -70,6 +70,8 @@ def create_app() -> FastAPI:
     app.include_router(health.router, tags=["health"])
     app.include_router(auth.router, tags=["auth"])
     app.include_router(feed.router, tags=["feed"])
+    app.include_router(history.router, tags=["history"])
+    app.include_router(search.router, tags=["search"])
 
     return app
 

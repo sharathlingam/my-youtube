@@ -1,24 +1,35 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Bebas_Neue, Outfit } from "next/font/google";
 import "./globals.css";
 import { auth } from "@/auth";
 import { Providers } from "@/components/providers";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-bebas",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "My YouTube",
-  description: "Personalized YouTube feed",
+  title: "Signal — Your Personalized Feed",
+  description: "Personalized YouTube feed, powered by your taste",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "MyYT",
+    title: "Signal",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ff0000",
+  themeColor: "#06060A",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -32,8 +43,11 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
-      <body className="min-h-full bg-black text-white" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${bebasNeue.variable} ${outfit.variable} h-full`}
+    >
+      <body suppressHydrationWarning>
         <Providers session={session}>{children}</Providers>
       </body>
     </html>

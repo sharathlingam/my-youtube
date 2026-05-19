@@ -14,7 +14,13 @@ celery_app = Celery(
     "yt_pwa",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.workers.tasks.refresh_subscriptions"],
+    include=[
+        "app.workers.tasks.refresh_subscriptions",
+        "app.workers.tasks.process_watch_events",
+        "app.workers.tasks.decay_interest_weights",
+        "app.workers.tasks.embed_new_videos",
+        "app.workers.tasks.rerank_user_feed",
+    ],
 )
 
 celery_app.conf.update(
@@ -32,5 +38,21 @@ celery_app.conf.beat_schedule = {
     "refresh-subscriptions-every-2h": {
         "task": "app.workers.tasks.refresh_subscriptions.refresh_all_subscriptions",
         "schedule": crontab(minute=0, hour="*/2"),
+    },
+    "process-watch-events-every-5m": {
+        "task": "app.workers.tasks.process_watch_events.process_watch_events",
+        "schedule": crontab(minute="*/5"),
+    },
+    "decay-interest-weights-daily": {
+        "task": "app.workers.tasks.decay_interest_weights.decay_interest_weights",
+        "schedule": crontab(minute=0, hour=0),
+    },
+    "embed-new-videos-every-30m": {
+        "task": "app.workers.tasks.embed_new_videos.embed_new_videos",
+        "schedule": crontab(minute="*/30"),
+    },
+    "rerank-user-feed-every-15m": {
+        "task": "app.workers.tasks.rerank_user_feed.rerank_user_feed",
+        "schedule": crontab(minute="*/15"),
     },
 }
