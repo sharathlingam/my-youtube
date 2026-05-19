@@ -118,6 +118,10 @@ async def _refresh_user(
         try:
             videos = await yt.get_videos(new_ids)
             for v in videos:
+                # Skip Shorts (≤60s)
+                dur = v.get("duration_secs")
+                if dur is not None and dur <= 60:
+                    continue
                 await session.execute(
                     insert(Video)
                     .values(**v)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import AsyncIterator
 
@@ -140,6 +141,33 @@ class YouTubeClient:
     # ------------------------------------------------------------------
     # Video details (batched 50)
     # ------------------------------------------------------------------
+
+    async def search_videos(self, query: str, max_results: int = 25) -> list[str]:
+        """search.list → list of video IDs. Cached 6h."""
+        cache_key = f"yt:search:{hashlib.md5(query.lower().encode()).hexdigest()}"
+        cached = await self._redis.get(cache_key)
+        if cached:
+            return json.loads(cached)
+
+        await self._quota.check_and_increment("search.list")
+        resp = await self._http.get(
+            f"{YT_BASE}/search",
+            params={
+                "part": "id",
+                "q": query,
+                "type": "video",
+                "maxResults": max_results,
+                "key": self._settings.youtube_api_key,
+            },
+        )
+        resp.raise_for_status()
+        ids = [
+            item["id"]["videoId"]
+            for item in resp.json().get("items", [])
+            if item.get("id", {}).get("videoId")
+        ]
+        await self._redis.setex(cache_key, 21600, json.dumps(ids))
+        return ids
 
     async def get_videos(self, video_ids: list[str]) -> list[dict]:
         results: list[dict] = []

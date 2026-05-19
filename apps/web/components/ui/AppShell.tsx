@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
+import { useState, useRef } from "react";
 
 const NAV_ITEMS = [
   {
@@ -15,6 +16,15 @@ const NAV_ITEMS = [
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    href: "/search",
+    label: "Search",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
     ),
   },
@@ -41,7 +51,15 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
+  const [searchVal, setSearchVal] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  function submitSearch() {
+    const q = searchVal.trim();
+    router.push(`/search${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+  }
 
   const initials = session?.user?.name
     ? session.user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -59,25 +77,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Logo */}
-        <div className="px-6 py-7 border-b border-[#1E1E28]">
+        <div className="px-6 py-7 border-b border-border">
           <Link href="/feed" className="flex items-center gap-2 group">
             <span
-              className="text-3xl tracking-widest leading-none text-[#F0EDE8] group-hover:text-[#C8FF00] transition-colors"
+              className="text-3xl tracking-widest leading-none text-text group-hover:text-accent transition-colors"
               style={{ fontFamily: "var(--font-bebas), sans-serif" }}
             >
               SIGNAL
             </span>
             <span
-              className="w-2 h-2 rounded-full bg-[#C8FF00] mt-1 shrink-0"
+              className="w-2 h-2 rounded-full bg-accent mt-1 shrink-0"
               aria-hidden="true"
             />
           </Link>
         </div>
 
+        {/* Search */}
+        <div className="px-3 pt-4 pb-2">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </span>
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") submitSearch(); }}
+              placeholder="Search…"
+              className="w-full pl-8 pr-3 py-2 rounded-lg text-xs outline-none transition-all"
+              style={{
+                background: "#1A1A24",
+                border: "1px solid #2A2A38",
+                color: "#F0EDE8",
+                fontFamily: "var(--font-outfit), sans-serif",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#C8FF00"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#2A2A38"; }}
+            />
+          </div>
+        </div>
+
         {/* Nav links */}
-        <nav className="flex flex-col gap-1 px-3 py-5 flex-1">
+        <nav className="flex flex-col gap-1 px-3 py-3 flex-1">
           {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const active = pathname === item.href || (item.href !== "/feed" && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
@@ -102,7 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
                 {active && (
                   <span
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[#C8FF00]"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-accent"
                     aria-hidden="true"
                   />
                 )}
@@ -112,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User */}
-        <div className="px-4 py-5 border-t border-[#1E1E28]">
+        <div className="px-4 py-5 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
@@ -121,17 +167,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-[#F0EDE8] truncate">
+              <p className="text-xs font-medium text-text truncate">
                 {session?.user?.name ?? "—"}
               </p>
-              <p className="text-[11px] text-[#5A5A6A] truncate">
+              <p className="text-[11px] text-muted truncate">
                 {session?.user?.email ?? ""}
               </p>
             </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="w-full text-left text-xs text-[#5A5A6A] hover:text-[#F0EDE8] transition-colors py-1 px-1"
+            className="w-full text-left text-xs text-muted hover:text-text transition-colors py-1 px-1"
           >
             Sign out →
           </button>
@@ -143,9 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="flex-1 min-h-screen pb-20 md:pb-0"
         style={{ marginLeft: "0", paddingLeft: "0" }}
       >
-        <div
-          className="md:ml-[220px] min-h-screen"
-        >
+        <div className="md:ml-55 min-h-screen">
           {children}
         </div>
       </main>
@@ -160,12 +204,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }}
       >
         {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const active = pathname === item.href || (item.href !== "/feed" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all"
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all"
               style={{ color: active ? "#C8FF00" : "#5A5A6A" }}
             >
               {item.icon}

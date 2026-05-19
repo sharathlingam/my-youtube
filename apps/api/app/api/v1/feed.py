@@ -8,7 +8,7 @@ from typing import Annotated
 import numpy as np
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
-from sqlalchemy import func, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
@@ -79,6 +79,7 @@ async def get_feed(
     base_query = (
         select(Video)
         .where(Video.channel_id.in_(subscribed_channel_ids))
+        .where(or_(Video.duration_secs.is_(None), Video.duration_secs > 60))
         .order_by(Video.published_at.desc())
         .limit(candidate_limit)
     )

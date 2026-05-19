@@ -20,6 +20,7 @@ celery_app = Celery(
         "app.workers.tasks.decay_interest_weights",
         "app.workers.tasks.embed_new_videos",
         "app.workers.tasks.rerank_user_feed",
+        "app.workers.tasks.youtube_search",
     ],
 )
 

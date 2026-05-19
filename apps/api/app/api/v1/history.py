@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
@@ -78,6 +78,7 @@ async def get_history(
             select(WatchEvent, Video)
             .join(Video, Video.id == WatchEvent.video_id)
             .where(WatchEvent.user_id == current_user.id)
+            .where(or_(Video.duration_secs.is_(None), Video.duration_secs > 60))
             .order_by(WatchEvent.created_at.desc())
             .limit(limit)
         )
