@@ -12,7 +12,7 @@ from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_redis
 from app.models.user import User
 from app.models.user_interest import UserInterest
 from app.models.user_subscription import UserSubscription
@@ -60,10 +60,32 @@ def _cosine(a: list[float], b: list[float]) -> float:
 async def get_feed(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[object, Depends(get_redis)],
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(default=20, ge=1, le=100),
     cursor: str | None = Query(default=None),
 ) -> FeedResponse:
+    # ── Redis pre-computed feed cache (first page only, no cursor) ──────────
+    if not cursor:
+        cache_key = f"feed:precomputed:{current_user.id}"
+        cached = await redis.get(cache_key)  # type: ignore[union-attr]
+        if cached:
+            all_items: list[dict] = json.loads(cached)
+            page = all_items[:limit]
+            has_more = len(all_items) > limit
+            next_cursor = None
+            if has_more and page:
+                oldest_ts = min(
+                    (item["published_at"] for item in page if item.get("published_at")),
+                    default=None,
+                )
+                next_cursor = oldest_ts
+            return FeedResponse(
+                items=[VideoOut(**item) for item in page],
+                next_cursor=next_cursor,
+            )
+
+    # ── Live ranking (cache miss or paginating past first page) ─────────────
     subscribed_channel_ids = (
         await db.execute(
             select(UserSubscription.channel_id).where(
@@ -93,7 +115,6 @@ async def get_feed(
 
     video_ids = [v.id for v in videos]
 
-    # User interests
     interests: dict[str, float] = {
         row.topic.lower(): row.weight
         for row in (
@@ -105,7 +126,6 @@ async def get_feed(
         ).all()
     }
 
-    # Channel affinity
     channel_affinity: dict[str, float] = {}
     aff_rows = (
         await db.execute(
@@ -119,7 +139,6 @@ async def get_feed(
     for r in aff_rows:
         channel_affinity[r.channel_id] = r.cnt / total_w
 
-    # User taste vector
     taste_vec: list[float] | None = None
     if current_user.taste_embedding:
         try:
@@ -127,7 +146,6 @@ async def get_feed(
         except Exception:
             taste_vec = None
 
-    # Video embeddings map
     emb_map: dict[str, list[float]] = {}
     if taste_vec:
         emb_rows = (
@@ -142,7 +160,6 @@ async def get_feed(
     has_interests = bool(interests)
 
     def score(v: Video) -> float:
-        # Interest tag score (Phase 3 signal)
         tags = [t.lower() for t in (v.tags or [])]
         if tags and has_interests:
             matched = [interests[t] for t in tags if t in interests]
@@ -156,22 +173,17 @@ async def get_feed(
         if has_embeddings:
             vec = emb_map.get(v.id)
             semantic = _cosine(taste_vec, vec) if vec else 0.0  # type: ignore[arg-type]
-            # Phase 4 formula
-            diversity_bonus = 0.0  # post-processing handled below
             return (
                 0.35 * semantic
                 + 0.25 * interest_score
                 + 0.20 * freshness
                 + 0.15 * affinity
-                + 0.05 * diversity_bonus
             )
 
-        # Phase 3 fallback
         return 0.50 * interest_score + 0.30 * freshness + 0.20 * affinity
 
     ranked = sorted(videos, key=score, reverse=True)
 
-    # Diversity post-processing: boost first video per unseen primary tag
     if has_embeddings:
         seen_tags: set[str] = set()
         diversified: list[Video] = []
@@ -187,13 +199,13 @@ async def get_feed(
 
         ranked = diversified + deferred
 
-    page = ranked[:limit]
+    page_vids = ranked[:limit]
     has_more = len(ranked) > limit
 
     next_cursor = None
-    if has_more and page:
+    if has_more and page_vids:
         oldest = min(
-            page,
+            page_vids,
             key=lambda v: v.published_at or datetime.min.replace(tzinfo=timezone.utc),
         )
         if oldest.published_at:
@@ -211,7 +223,7 @@ async def get_feed(
                 duration_secs=v.duration_secs,
                 view_count=v.view_count,
             )
-            for v in page
+            for v in page_vids
         ],
         next_cursor=next_cursor,
     )

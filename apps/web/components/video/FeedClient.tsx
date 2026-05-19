@@ -1,6 +1,7 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { VideoCard } from "./VideoCard";
 
@@ -39,6 +40,17 @@ function SkeletonCard() {
 }
 
 export function FeedClient({ accessToken }: FeedClientProps) {
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    setIsOffline(!navigator.onLine);
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
     useInfiniteQuery<FeedResponse>({
       queryKey: ["feed"],
@@ -97,6 +109,15 @@ export function FeedClient({ accessToken }: FeedClientProps) {
 
   return (
     <div className="flex flex-col gap-8">
+      {isOffline && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm"
+          style={{ background: "#1A1A24", border: "1px solid #2A2A38", color: "#F0EDE8" }}
+        >
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#FF3B3B" }} />
+          <span>You&apos;re offline — showing cached feed</span>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {videos.map((v, i) => (
           <VideoCard

@@ -47,10 +47,19 @@ const serwist = new Serwist({
     },
     {
       matcher: ({ url }: { url: URL }) => url.pathname.startsWith("/api/v1/videos"),
-      handler: new NetworkFirst({
+      handler: new CacheFirst({
         cacheName: "api-videos",
         plugins: [
           new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 }),
+        ],
+      }),
+    },
+    {
+      matcher: /^https:\/\/www\.youtube\.com\/embed\/.*/i,
+      handler: new CacheFirst({
+        cacheName: "yt-embeds",
+        plugins: [
+          new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 }),
         ],
       }),
     },

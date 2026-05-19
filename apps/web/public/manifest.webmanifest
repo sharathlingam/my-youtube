@@ -1,11 +1,11 @@
 {
-  "name": "My YouTube",
-  "short_name": "MyYT",
+  "name": "SIGNAL",
+  "short_name": "SIGNAL",
   "description": "Personalized YouTube feed PWA",
   "start_url": "/feed",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#ff0000",
+  "background_color": "#06060A",
+  "theme_color": "#C8FF00",
   "orientation": "portrait-primary",
   "categories": ["entertainment"],
   "icons": [
