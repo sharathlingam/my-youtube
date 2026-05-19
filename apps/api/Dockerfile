@@ -15,10 +15,13 @@ RUN uv sync --no-dev --frozen --no-install-project
 # Copy source
 COPY app/ app/
 COPY migrations/ migrations/
+COPY start.sh .
+
+RUN chmod +x start.sh
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD ["./start.sh"]

@@ -18,9 +18,10 @@ celery_app = Celery(
         "app.workers.tasks.refresh_subscriptions",
         "app.workers.tasks.process_watch_events",
         "app.workers.tasks.decay_interest_weights",
-        "app.workers.tasks.embed_new_videos",
-        "app.workers.tasks.rerank_user_feed",
         "app.workers.tasks.youtube_search",
+        # embed_new_videos + rerank_user_feed excluded: require sentence-transformers
+        # (~500MB RAM), incompatible with free-tier 512MB constraint.
+        # Feed falls back to Phase 3 tag-based ranking.
     ],
 )
 
@@ -47,13 +48,5 @@ celery_app.conf.beat_schedule = {
     "decay-interest-weights-daily": {
         "task": "app.workers.tasks.decay_interest_weights.decay_interest_weights",
         "schedule": crontab(minute=0, hour=0),
-    },
-    "embed-new-videos-every-30m": {
-        "task": "app.workers.tasks.embed_new_videos.embed_new_videos",
-        "schedule": crontab(minute="*/30"),
-    },
-    "rerank-user-feed-every-15m": {
-        "task": "app.workers.tasks.rerank_user_feed.rerank_user_feed",
-        "schedule": crontab(minute="*/15"),
     },
 }
