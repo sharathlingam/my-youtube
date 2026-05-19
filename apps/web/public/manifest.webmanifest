@@ -1,0 +1,33 @@
+{
+  "name": "My YouTube",
+  "short_name": "MyYT",
+  "description": "Personalized YouTube feed PWA",
+  "start_url": "/feed",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#ff0000",
+  "orientation": "portrait-primary",
+  "categories": ["entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "My Feed",
+      "url": "/feed",
+      "description": "Personalized video feed"
+    }
+  ]
+}
